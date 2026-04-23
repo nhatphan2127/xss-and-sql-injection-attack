@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'functions.php';
 redirect_if_not_logged_in();
 
@@ -7,12 +8,29 @@ $message = '';
 
 if (isset($_POST['request_loan'])) {
     $amount = (float)$_POST['amount'];
-    // VULNERABLE: Direct numeric injection or logic bypass (negative amount?)
-    $conn->query("INSERT INTO loans (user_id, amount, status) VALUES ({$user['id']}, $amount, 'pending')");
+    
+    if (SECURE_MODE) {
+        // SECURE: Using prepared statement
+        $stmt = $conn->prepare("INSERT INTO loans (user_id, amount, status) VALUES (?, ?, 'pending')");
+        $stmt->bind_param("id", $user['id'], $amount);
+        $stmt->execute();
+    } else {
+        // VULNERABLE: Direct numeric injection or logic bypass possible
+        $conn->query("INSERT INTO loans (user_id, amount, status) VALUES ({$user['id']}, $amount, 'pending')");
+    }
     $message = "Loan request submitted! Status: PENDING";
 }
 
-$loans = $conn->query("SELECT * FROM loans WHERE user_id = {$user['id']} ORDER BY created_at DESC");
+if (SECURE_MODE) {
+    // SECURE: Using prepared statement
+    $stmt = $conn->prepare("SELECT * FROM loans WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt->bind_param("i", $user['id']);
+    $stmt->execute();
+    $loans = $stmt->get_result();
+} else {
+    // VULNERABLE: SQL injection possible
+    $loans = $conn->query("SELECT * FROM loans WHERE user_id = {$user['id']} ORDER BY created_at DESC");
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

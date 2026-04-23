@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'functions.php';
 redirect_if_not_logged_in();
 
@@ -18,8 +19,20 @@ if (isset($_POST['pay_bill'])) {
     $method = $_POST['payment_method'];
     
     if ($user['balance'] >= $amount) {
-        $conn->query("UPDATE users SET balance = balance - $amount WHERE id = {$user['id']}");
-        $conn->query("INSERT INTO bills (user_id, category, biller, amount, status) VALUES ({$user['id']}, '$category', '$biller', $amount, 'paid')");
+        if (SECURE_MODE) {
+            // SECURE: Using prepared statements
+            $stmt1 = $conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
+            $stmt1->bind_param("di", $amount, $user['id']);
+            $stmt1->execute();
+            
+            $stmt2 = $conn->prepare("INSERT INTO bills (user_id, category, biller, amount, status) VALUES (?, ?, ?, ?, 'paid')");
+            $stmt2->bind_param("issd", $user['id'], $category, $biller, $amount);
+            $stmt2->execute();
+        } else {
+            // VULNERABLE: SQL injection in $category and $biller
+            $conn->query("UPDATE users SET balance = balance - $amount WHERE id = {$user['id']}");
+            $conn->query("INSERT INTO bills (user_id, category, biller, amount, status) VALUES ({$user['id']}, '$category', '$biller', $amount, 'paid')");
+        }
         log_transaction($conn, $user['id'], 'debit', "Bill Payment: $biller", $amount);
         $message = "Bill paid successfully!";
         $user = get_user_data($conn, $user['id']);
@@ -28,7 +41,16 @@ if (isset($_POST['pay_bill'])) {
     }
 }
 
-$bills = $conn->query("SELECT * FROM bills WHERE user_id = {$user['id']} ORDER BY created_at DESC");
+if (SECURE_MODE) {
+    // SECURE: Using prepared statement
+    $stmt = $conn->prepare("SELECT * FROM bills WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt->bind_param("i", $user['id']);
+    $stmt->execute();
+    $bills = $stmt->get_result();
+} else {
+    // VULNERABLE: SQL injection possible
+    $bills = $conn->query("SELECT * FROM bills WHERE user_id = {$user['id']} ORDER BY created_at DESC");
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'functions.php';
 redirect_if_not_logged_in();
 
@@ -10,17 +11,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['transfer'])) {
     $amount = (float)$_POST['amount'];
     $desc = $_POST['description'];
 
-    // VULNERABLE: Direct SQL string interpolation (SQL Injection)
-    $find_sql = "SELECT * FROM users WHERE account_number = '$to_acc'";
-    $find_res = $conn->query($find_sql);
+    if (SECURE_MODE) {
+        // SECURE: Using prepared statement
+        $find_sql = "SELECT * FROM users WHERE account_number = ?";
+        $stmt = $conn->prepare($find_sql);
+        $stmt->bind_param("s", $to_acc);
+        $stmt->execute();
+        $find_res = $stmt->get_result();
+    } else {
+        // VULNERABLE: Direct SQL string interpolation (SQL Injection)
+        $find_sql = "SELECT * FROM users WHERE account_number = '$to_acc'";
+        $find_res = $conn->query($find_sql);
+    }
 
     if ($find_res && $find_res->num_rows > 0) {
         $recipient = $find_res->fetch_assoc();
         
         if ($user['balance'] >= $amount) {
-            // Update balances
-            $conn->query("UPDATE users SET balance = balance - $amount WHERE id = {$user['id']}");
-            $conn->query("UPDATE users SET balance = balance + $amount WHERE id = {$recipient['id']}");
+            // Update balances with proper parameterization in secure mode
+            if (SECURE_MODE) {
+                $stmt1 = $conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
+                $stmt1->bind_param("di", $amount, $user['id']);
+                $stmt1->execute();
+                
+                $stmt2 = $conn->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+                $stmt2->bind_param("di", $amount, $recipient['id']);
+                $stmt2->execute();
+            } else {
+                $conn->query("UPDATE users SET balance = balance - $amount WHERE id = {$user['id']}");
+                $conn->query("UPDATE users SET balance = balance + $amount WHERE id = {$recipient['id']}");
+            }
             
             // Log transactions
             log_transaction($conn, $user['id'], 'debit', "Transfer to $to_acc: $desc", $amount);

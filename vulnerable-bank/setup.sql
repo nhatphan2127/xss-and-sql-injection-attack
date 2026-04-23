@@ -55,16 +55,11 @@ ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user';
 ALTER TABLE users ADD COLUMN account_number VARCHAR(20) UNIQUE;
 ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT 'default.png';
 
--- Update sample users with account numbers
-UPDATE users SET account_number = 'VB-000001', role = 'admin' WHERE username = 'admin';
-UPDATE users SET account_number = 'VB-000002' WHERE username = 'alice';
-UPDATE users SET account_number = 'VB-000003' WHERE username = 'bob';
-
 -- Insert sample users
-INSERT INTO users (username, password, balance, profile_bio) VALUES 
-('admin', 'admin123', 5000.00, 'I am the administrator of Vulnerable Bank.'),
-('alice', 'password123', 1200.50, 'Hello, I am Alice.'),
-('bob', 'qwerty', 450.75, 'Bob likes banking.');
+INSERT INTO users (username, password, balance, profile_bio, role, account_number) VALUES 
+('admin', 'admin123', 5000.00, 'I am the administrator of Vulnerable Bank.', 'admin', 'VB-000001'),
+('alice', 'password123', 1200.50, 'Hello, I am Alice.', 'user', 'VB-000002'),
+('bob', 'qwerty', 450.75, 'Bob likes banking.', 'user', 'VB-000003');
 
 -- Insert sample transactions
 INSERT INTO transactions (user_id, description, amount) VALUES 

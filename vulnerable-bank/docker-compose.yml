@@ -7,6 +7,10 @@ services:
     container_name: php_app
     ports:
       - "8080:80"
+    environment:
+      # Set SECURE_MODE=1 or SECURE_MODE=true for secure version
+      # Leave it as false (or unset) for vulnerable version
+      SECURE_MODE: "false"
     volumes:
       - .:/var/www/html
 

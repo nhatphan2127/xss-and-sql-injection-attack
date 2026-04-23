@@ -1,9 +1,21 @@
 <?php
-// session_set_cookie_params([
-//     'httponly' => false // VULNERABLE: HttpOnly flag is disabled, making cookies accessible via JavaScript
-// ]);
-session_start();
+require_once 'config.php';
 require_once 'db.php';
+
+// Cookie security configuration
+if (SECURE_MODE) {
+    session_set_cookie_params([
+        'httponly' => true,  // Prevent JavaScript access to cookies
+        'secure' => true,    // Only send over HTTPS
+        'samesite' => 'Strict'
+    ]);
+} else {
+    session_set_cookie_params([
+        'httponly' => false // VULNERABLE: HttpOnly flag is disabled, making cookies accessible via JavaScript
+    ]);
+}
+
+session_start();
 
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
@@ -16,9 +28,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // VULNERABLE: Direct string interpolation (SQL Injection)
-    $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
-    $result = $conn->query($sql);
+    if (SECURE_MODE) {
+        // SECURE: Using prepared statements with parameterized queries
+        $sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $username, $password);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    } else {
+        // VULNERABLE: Direct string interpolation (SQL Injection)
+        $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
+        $result = $conn->query($sql);
+    }
 
     if ($result && $result->num_rows > 0) {
         $user = $result->fetch_assoc();
