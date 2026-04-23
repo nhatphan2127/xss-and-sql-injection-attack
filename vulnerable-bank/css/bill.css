@@ -1,0 +1,159 @@
+/* Layout cụ thể cho trang Bills */
+.col-span-2 {
+    grid-column: span 2;
+}
+
+/* Style cho các ô Select giống với Input */
+select.search-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.2rem;
+    padding-right: 2.5rem;
+    height: 3.5rem;
+    cursor: pointer;
+}
+
+/* Input Amount với Icon */
+.custom-input-padding {
+    padding-left: 3rem !important;
+    width: 100% !important;
+    height: 3.5rem;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #4b78b6;
+}
+
+/* Cải thiện Bảng hóa đơn */
+.bill-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.bill-table th {
+    padding: 1rem;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bill-table td {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.font-semibold { font-weight: 600; color: var(--text-main); }
+.font-bold { font-weight: 800; color: var(--text-main); }
+
+/* Responsive cho điện thoại */
+@media (max-width: 1024px) {
+    .col-span-2 {
+        grid-column: span 1;
+    }
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Container chính */
+.custom-select-wrapper {
+    position: relative;
+    user-select: none;
+    width: 100%;
+}
+
+/* Khung hiển thị khi chưa chọn */
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    height: 3.5rem;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.custom-select-trigger:hover {
+    border-color: var(--primary);
+}
+
+.custom-select-wrapper.open .custom-select-trigger {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+/* Khung chứa các Option thả xuống */
+.custom-options {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 100;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: all;
+    transform: translateY(0);
+}
+
+/* Từng dòng Option */
+.custom-option {
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.custom-option:hover {
+    background: #f1f5f9;
+    color: var(--primary);
+    padding-left: 1.5rem; /* Hiệu ứng trượt nhẹ khi hover */
+}
+
+.custom-option.selected {
+    background: var(--primary-glow);
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Thanh cuộn cho menu */
+.custom-options::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-options::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}

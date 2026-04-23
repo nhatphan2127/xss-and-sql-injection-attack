@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    platform: linux/amd64
+    container_name: php_app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+
+  db:
+    image: mysql:8.0
+    platform: linux/amd64
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: vulnerable_bank
+    ports:
+      - "3307:3306"
+
+  attacker:
+    build: ../attacker
+    platform: linux/amd64
+    container_name: attacker_app
+    ports:
+      - "8082:80"
+    volumes:
+      - ../attacker:/var/www/html
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    platform: linux/amd64
+    container_name: phpmyadmin_app
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
