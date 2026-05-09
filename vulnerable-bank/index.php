@@ -67,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 
     <div class="container">
-        <div class="box"></div>
+        <!-- <div class="box"></div> -->
 
-        <div class="login-container">
+        <div class="login-container" style="width: 100%;">
             <div class="login-box">
                 <header class="login-header">
                     <h1>Welcome to V-Bank</h1>

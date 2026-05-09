@@ -43,6 +43,7 @@ docker-compose up --build
 | **cards.php** | SQL Injection (Type, Currency) | Direct query | Prepared statements |
 | **profile.php** | Stored XSS (Bio) + SQL Injection + File Upload RCE | No sanitization, No validation | htmlspecialchars() + file type check |
 | **loans.php** | SQL Injection (Amount) | Direct query | Prepared statements |
+| **feedback.php** | Stored XSS (Feedback) + SQL Injection | Direct echo + Direct query | htmlspecialchars() + Prepared statements |
 
 ## Cấu trúc Code
 
@@ -57,6 +58,7 @@ vulnerable-bank/
 ├── cards.php              # Cards (SQL Injection toggle)
 ├── profile.php            # Profile (XSS + SQL Injection + File Upload toggles)
 ├── loans.php              # Loans (SQL Injection toggle)
+├── feedback.php           # Feedback (Stored XSS + SQL Injection toggles)
 └── docker-compose.yml     # Contains SECURE_MODE env var
 ```
 
@@ -74,6 +76,7 @@ Khi chạy vulnerable mode:
 - Dashboard: Thử XSS `<script>alert('XSS')</script>` trong search
 - Profile: Upload `.php` file và thử RCE
 - Transfer/Bills/Cards: Thử SQL injection trong fields
+- Feedback: Thử Stored XSS `<script>alert('Stored XSS')</script>` hoặc SQL injection `' OR 1=1 --`
 
 Khi chạy secure mode:
 - Tất cả các tấn công trên sẽ bị block

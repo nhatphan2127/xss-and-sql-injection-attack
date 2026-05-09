@@ -29,6 +29,9 @@
         <a href="profile.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'active' : ''; ?>">
             <i class="fas fa-fw fa-user"></i> <span>Profile</span>
         </a>
+        <a href="feedback.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'feedback.php' ? 'active' : ''; ?>">
+            <i class="fas fa-fw fa-comments"></i> <span>Feedback</span>
+        </a>
         <a href="logout.php">
             <i class="fas fa-fw fa-sign-out-alt"></i> <span>Logout</span>
         </a>

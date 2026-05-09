@@ -57,12 +57,24 @@ ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT 'default.png';
 
 -- Insert sample users
 INSERT INTO users (username, password, balance, profile_bio, role, account_number) VALUES 
-('admin', 'admin123', 5000.00, 'I am the administrator of Vulnerable Bank.', 'admin', 'VB-000001'),
-('alice', 'password123', 1200.50, 'Hello, I am Alice.', 'user', 'VB-000002'),
-('bob', 'qwerty', 450.75, 'Bob likes banking.', 'user', 'VB-000003');
+('user1', 'password123 ', 5000.00, 'I am the administrator of Vulnerable Bank.', 'admin', 'VB-000001'),
+('user2', 'password123', 3000.00, 'Hello, I am Alice.', 'user', 'VB-000002'),
+('user3', 'password456 ', 2000.00, 'Bob likes banking.', 'user', 'VB-000003');
 
 -- Insert sample transactions
 INSERT INTO transactions (user_id, description, amount) VALUES 
 (1, 'Initial Deposit', 5000.00),
-(2, 'Initial Deposit', 1200.50),
-(3, 'Initial Deposit', 450.75);
+(2, 'Initial Deposit', 3000.00),
+(3, 'Initial Deposit', 2000.00);
+
+CREATE TABLE IF NOT EXISTS feedback (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+INSERT INTO feedback (user_id, message) VALUES 
+(2, 'This application is very useful!'),
+(3, 'I love the new virtual card feature.');
